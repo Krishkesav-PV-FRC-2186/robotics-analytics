@@ -1,0 +1,12 @@
+ultralytics
+supervision
+opencv-python
+easyocr
+psycopg2-binary
+neo4j
+fastapi
+pydantic
+langgraph
+sqlalchemy
+httpx
+numpy
