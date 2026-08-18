@@ -131,16 +131,18 @@ class ReportGraphState(TypedDict):
 
 
 class LLMClient:
-    """Thin wrapper around the OpenAI chat completions API."""
+    """Thin wrapper around Google Gemini via LangChain ChatGoogleGenerativeAI."""
 
     def __init__(
         self,
-        model: str = "gpt-4o-mini",
+        model: str = "gemini-2.0-flash",
         api_key: str | None = None,
         temperature: float = 0.3,
     ) -> None:
         self.model = model
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
+        self.api_key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get(
+            "GOOGLE_API_KEY", ""
+        )
         self.temperature = temperature
         self._client: Any = None
 
@@ -148,25 +150,54 @@ class LLMClient:
         if self._client is None:
             if not self.api_key:
                 raise ValueError(
-                    "OpenAI API key required. Set OPENAI_API_KEY or pass api_key."
+                    "Gemini API key required. Set GEMINI_API_KEY or GOOGLE_API_KEY, "
+                    "or pass api_key to LLMClient."
                 )
-            from openai import OpenAI
+            os.environ.setdefault("GOOGLE_API_KEY", self.api_key)
+            from langchain_core.messages import HumanMessage, SystemMessage
+            from langchain_google_genai import ChatGoogleGenerativeAI
 
-            self._client = OpenAI(api_key=self.api_key)
+            self._message_types = (SystemMessage, HumanMessage)
+            self._client = ChatGoogleGenerativeAI(
+                model=self.model,
+                google_api_key=self.api_key,
+                temperature=self.temperature,
+            )
         return self._client
+
+    @staticmethod
+    def _extract_text(content: Any) -> str:
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                elif isinstance(item, dict) and "text" in item:
+                    parts.append(str(item["text"]))
+            return "".join(parts)
+        return str(content or "")
+
+    @staticmethod
+    def _strip_markdown_fence(text: str) -> str:
+        stripped = text.strip()
+        if stripped.startswith("```"):
+            stripped = stripped.split("\n", 1)[-1]
+            if stripped.rstrip().endswith("```"):
+                stripped = stripped.rsplit("```", 1)[0]
+        return stripped.strip()
 
     def complete(self, system: str, user: str) -> str:
         client = self._get_client()
-        response = client.chat.completions.create(
-            model=self.model,
-            temperature=self.temperature,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            response_format={"type": "json_object"},
+        system_message, human_message = self._message_types
+        response = client.invoke(
+            [
+                system_message(content=system),
+                human_message(content=f"{user}\n\nRespond with valid JSON only."),
+            ]
         )
-        return response.choices[0].message.content or "{}"
+        return self._strip_markdown_fence(self._extract_text(response.content)) or "{}"
 
 
 # ---------------------------------------------------------------------------
@@ -186,7 +217,7 @@ class ReportGenerator:
     def __init__(
         self,
         llm: LLMClient | None = None,
-        model: str = "gpt-4o-mini",
+        model: str = "gemini-2.0-flash",
     ) -> None:
         self.llm = llm or LLMClient(model=model)
         self._graph = self._build_graph()

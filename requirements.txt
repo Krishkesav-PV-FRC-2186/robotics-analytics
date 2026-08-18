@@ -9,7 +9,7 @@ uvicorn
 pydantic
 langgraph
 langchain-core
-openai
+langchain-google-genai
 sqlalchemy
 httpx
 numpy
