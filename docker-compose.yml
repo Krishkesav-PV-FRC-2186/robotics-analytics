@@ -58,8 +58,8 @@ services:
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-password123}
       TBA_API_KEY: ${TBA_API_KEY:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-${GEMINI_API_KEY:-}}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-${GEMINI_API_KEY}}
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,8 +84,8 @@ services:
     command: streamlit run src/dashboard/app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
     environment:
       API_URL: http://127.0.0.1:8000
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-${GEMINI_API_KEY:-}}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-${GEMINI_API_KEY}}
     depends_on:
       api:
         condition: service_healthy
