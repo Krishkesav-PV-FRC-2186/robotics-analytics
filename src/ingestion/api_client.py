@@ -239,3 +239,18 @@ class TBAClient:
     async def get_event_teams(self, event_key: str) -> list[dict[str, Any]]:
         """Fetch team metadata for all teams attending an event."""
         return await self._get(f"/event/{event_key}/teams")
+
+    async def get_team(self, team_number: int) -> dict[str, Any]:
+        """Fetch metadata for a single team."""
+        return await self._get(f"/team/frc{team_number}")
+
+    async def get_team_event_matches(
+        self, team_number: int, event_key: str
+    ) -> list[MatchData]:
+        """Fetch all matches for a team at a specific event."""
+        all_matches = await self.get_event_matches(event_key)
+        return [
+            m
+            for m in all_matches
+            if team_number in m.red_teams or team_number in m.blue_teams
+        ]
