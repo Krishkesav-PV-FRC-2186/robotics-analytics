@@ -1,0 +1,36 @@
+---
+description: Robotics analytics pipeline conventions for FRC competition data
+globs:
+  - src/**/*
+alwaysApply: false
+---
+
+# Robotics Analytics Pipeline
+
+## Architecture
+
+The platform follows a five-stage pipeline:
+
+1. **Ingestion** (`src/ingestion/`) — Fetch match, roster, and video data from The Blue Alliance API.
+2. **Vision** (`src/vision/`) — Detect and track robots in match video using YOLO + ByteTrack.
+3. **Storage** (`src/storage/`) — Persist structured data in PostgreSQL and alliance graphs in Neo4j.
+4. **Analytics** (`src/analytics/`) — Compute alliance synergy scores and performance metrics.
+5. **LLM** (`src/llm/`) — Natural-language insights and coaching recommendations.
+
+## Conventions
+
+- All external API calls must be async (`httpx.AsyncClient`).
+- Database models use SQLAlchemy declarative base; graph relationships use Neo4j Cypher.
+- Vision outputs are typed dataclasses with bounding boxes, track IDs, and movement vectors.
+- Analytics scores are normalized to a 0–100 range.
+- Environment variables: `TBA_API_KEY`, `DATABASE_URL`, `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`.
+
+## Data Flow
+
+```
+TBA API → Ingestion → PostgreSQL (teams/matches/events)
+                    → Neo4j (alliance relationships)
+Video   → Vision    → Tracker output (bboxes, IDs, vectors)
+Tracker → Analytics → Synergy scores
+Analytics → LLM     → Coaching insights
+```
