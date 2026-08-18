@@ -236,6 +236,10 @@ class TBAClient:
             videos.extend(match.videos)
         return videos
 
+    async def get_event(self, event_key: str) -> dict[str, Any]:
+        """Fetch metadata for a single event."""
+        return await self._get(f"/event/{event_key}")
+
     async def get_event_teams(self, event_key: str) -> list[dict[str, Any]]:
         """Fetch team metadata for all teams attending an event."""
         return await self._get(f"/event/{event_key}/teams")

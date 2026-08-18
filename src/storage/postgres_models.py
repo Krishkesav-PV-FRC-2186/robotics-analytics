@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from datetime import datetime
 
 from sqlalchemy import (
@@ -170,6 +172,13 @@ class Match(Base):
     @classmethod
     def from_tba(cls, tba_match: dict, event_id: int) -> Match:
         """Build a Match instance from a TBA /match/{key} response."""
+        alliances = tba_match.get("alliances") or {}
+        red_score = tba_match.get("red_score")
+        blue_score = tba_match.get("blue_score")
+        if red_score is None:
+            red_score = alliances.get("red", {}).get("score")
+        if blue_score is None:
+            blue_score = alliances.get("blue", {}).get("score")
         videos = tba_match.get("videos") or []
         youtube_keys = ",".join(v.get("key", "") for v in videos if v.get("key"))
         return cls(
@@ -179,15 +188,26 @@ class Match(Base):
             set_number=tba_match.get("set_number", 0),
             match_number=tba_match.get("match_number", 0),
             winning_alliance=tba_match.get("winning_alliance"),
-            red_score=tba_match.get("red_score"),
-            blue_score=tba_match.get("blue_score"),
+            red_score=red_score,
+            blue_score=blue_score,
             match_time=tba_match.get("time"),
             youtube_keys=youtube_keys or None,
         )
 
 
-def create_session_factory(database_url: str):
+def create_session_factory(database_url: str, retries: int = 15, delay: float = 2.0):
     """Create a SQLAlchemy engine and session factory from a connection URL."""
     engine = create_engine(database_url, echo=False)
-    Base.metadata.create_all(engine)
+    last_error: Exception | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            Base.metadata.create_all(engine)
+            last_error = None
+            break
+        except Exception as exc:
+            last_error = exc
+            if attempt < retries:
+                time.sleep(delay)
+    if last_error is not None:
+        raise last_error
     return sessionmaker(bind=engine), engine

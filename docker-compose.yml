@@ -1,0 +1,90 @@
+# Cloud Agent / Linux host-network compose.
+# Services bind the documented ports on the host:
+#   postgres 5432, neo4j 7474/7687, api 8000, dashboard 8501
+services:
+  postgres:
+    image: postgres:16
+    container_name: robotics-postgres
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      POSTGRES_USER: robotics
+      POSTGRES_PASSWORD: robotics
+      POSTGRES_DB: robotics
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U robotics -d robotics -h 127.0.0.1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: robotics-neo4j
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      NEO4J_AUTH: neo4j/robotics-graph
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+      NEO4J_dbms_security_procedures_allowlist: apoc.*
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: robotics-api
+    restart: unless-stopped
+    network_mode: host
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000
+    environment:
+      DATABASE_URL: postgresql://robotics:robotics@127.0.0.1:5432/robotics
+      NEO4J_URI: bolt://127.0.0.1:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: robotics-graph
+      TBA_API_KEY: ${TBA_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 25s
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: robotics-dashboard
+    restart: unless-stopped
+    network_mode: host
+    command: streamlit run src/dashboard/app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+    environment:
+      API_URL: http://127.0.0.1:8000
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_plugins:
