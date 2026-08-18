@@ -5,6 +5,7 @@ easyocr
 psycopg2-binary
 neo4j
 fastapi
+uvicorn
 pydantic
 langgraph
 langchain-core
@@ -12,3 +13,5 @@ openai
 sqlalchemy
 httpx
 numpy
+pytest
+pytest-asyncio

@@ -9,7 +9,7 @@ from typing import Iterator, Sequence
 
 import numpy as np
 
-from src.vision.tracker import TrackState, TrackingResult
+from src.vision.types import TrackState, TrackingResult
 
 
 class EventType(str, Enum):
