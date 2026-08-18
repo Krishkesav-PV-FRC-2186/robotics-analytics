@@ -49,7 +49,7 @@ class Neo4jAllianceClient:
     ) -> None:
         self.uri = uri or os.environ.get("NEO4J_URI", "bolt://localhost:7687")
         self.user = user or os.environ.get("NEO4J_USER", "neo4j")
-        self.password = password or os.environ.get("NEO4J_PASSWORD", "password")
+        self.password = password or os.environ.get("NEO4J_PASSWORD", "password123")
         self.database = database
         self._driver: Driver | None = None
 
