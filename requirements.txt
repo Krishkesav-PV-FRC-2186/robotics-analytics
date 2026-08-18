@@ -7,6 +7,8 @@ neo4j
 fastapi
 pydantic
 langgraph
+langchain-core
+openai
 sqlalchemy
 httpx
 numpy
