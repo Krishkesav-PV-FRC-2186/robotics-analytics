@@ -1,0 +1,17 @@
+{
+  "name": "Robotics Analytics Platform",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "user": "ubuntu",
+  "install": "python3 -m pip install --user --break-system-packages -r requirements.txt",
+  "start": "sudo service docker start && docker compose up -d",
+  "ports": [
+    { "name": "api", "port": 8000 },
+    { "name": "dashboard", "port": 8501 },
+    { "name": "postgres", "port": 5432 },
+    { "name": "neo4j-http", "port": 7474 },
+    { "name": "neo4j-bolt", "port": 7687 }
+  ]
+}

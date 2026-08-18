@@ -1,0 +1,1 @@
+"""FRC scouting dashboard."""
